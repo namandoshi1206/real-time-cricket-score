@@ -24,6 +24,8 @@ public class DeliveryRequest {
     @NotNull
     private Long bowlerId;
 
+    private Long dismissedBatsmanId;
+
     @NotNull
     @Min(0)
     private Integer runs = 0;
@@ -74,6 +76,14 @@ public class DeliveryRequest {
 
     public void setBowlerId(Long bowlerId) {
         this.bowlerId = bowlerId;
+    }
+
+    public Long getDismissedBatsmanId() {
+        return dismissedBatsmanId;
+    }
+
+    public void setDismissedBatsmanId(Long dismissedBatsmanId) {
+        this.dismissedBatsmanId = dismissedBatsmanId;
     }
 
     public Integer getRuns() {

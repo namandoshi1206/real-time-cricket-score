@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+/backend/target/
+/frontend/node_modules/
+/frontend/dist/
+.idea/
+.vscode/
+*.iml
+*.class
+*.log
+Thumbs.db
+.DS_Store

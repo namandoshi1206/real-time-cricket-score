@@ -89,6 +89,7 @@ class ScoringEngineTest {
         lenient().when(playerRepository.findById(11L)).thenReturn(Optional.of(batsman));
         lenient().when(playerRepository.findById(12L)).thenReturn(Optional.of(nonStriker));
         lenient().when(playerRepository.findById(13L)).thenReturn(Optional.of(bowler));
+        lenient().when(playerRepository.findById(14L)).thenReturn(Optional.of(player(14L)));
         lenient().when(teamPlayerRepository.existsByTeamIdAndPlayerId(anyLong(), anyLong())).thenReturn(true);
         lenient().when(deliveryRepository.existsByInningsIdAndDismissedBatsmanId(anyLong(), anyLong())).thenReturn(false);
         lenient().when(deliveryRepository.save(any(Delivery.class))).thenAnswer(invocation -> {
@@ -112,6 +113,8 @@ class ScoringEngineTest {
         for (int runs : new int[]{1, 2, 3, 4, 6}) {
             innings.setLegalBalls(0);
             innings.setTotalRuns(0);
+            innings.setStriker(null);
+            innings.setNonStriker(null);
             DeliveryResponse response = record(runs, ExtraType.NONE, 0, null);
             assertEquals(runs, response.totalRuns());
             assertEquals(runs, innings.getTotalRuns());
@@ -141,6 +144,8 @@ class ScoringEngineTest {
         DeliveryResponse bye = record(0, ExtraType.BYE, 2, null);
         innings.setLegalBalls(0);
         innings.setTotalRuns(0);
+        innings.setStriker(null);
+        innings.setNonStriker(null);
         DeliveryResponse legBye = record(0, ExtraType.LEG_BYE, 3, null);
 
         assertTrue(bye.legalDelivery());
@@ -156,6 +161,54 @@ class ScoringEngineTest {
         assertEquals(WicketType.BOWLED, response.wicketType());
         assertEquals(11L, response.dismissedBatsmanId());
         assertEquals(1, innings.getWickets());
+    }
+
+    @Test
+    void rotatesStrikeForOddRunsAndEndOfOver() {
+        record(1, ExtraType.NONE, 0, null);
+
+        assertEquals(12L, innings.getStriker().getId());
+        assertEquals(11L, innings.getNonStriker().getId());
+
+        innings.setLegalBalls(5);
+        innings.setStriker(batsman);
+        innings.setNonStriker(nonStriker);
+        DeliveryRequest lastBall = request(0, ExtraType.NONE, 0, null);
+        lastBall.setBallNumber(6);
+        deliveryService.record(100L, lastBall);
+
+        assertEquals(12L, innings.getStriker().getId());
+        assertEquals(11L, innings.getNonStriker().getId());
+    }
+
+    @Test
+    void doesNotRotateForPenaltyButRotatesForWideRunningRuns() {
+        record(0, ExtraType.PENALTY, 5, null);
+        assertEquals(11L, innings.getStriker().getId());
+
+        innings.setTotalRuns(0);
+        innings.setLegalBalls(0);
+        innings.setStriker(null);
+        innings.setNonStriker(null);
+        DeliveryResponse wide = record(0, ExtraType.WIDE, 2, null);
+        assertFalse(wide.legalDelivery());
+        assertEquals(12L, innings.getStriker().getId());
+        assertEquals(0, innings.getLegalBalls());
+    }
+
+    @Test
+    void allowsReplacingDismissedNonStrikerOnNextDelivery() {
+        DeliveryRequest runOut = request(0, ExtraType.NONE, 0, WicketType.RUN_OUT);
+        runOut.setDismissedBatsmanId(12L);
+        deliveryService.record(100L, runOut);
+        when(deliveryRepository.existsByInningsIdAndDismissedBatsmanId(100L, 12L)).thenReturn(true);
+
+        DeliveryRequest nextBall = request(0, ExtraType.NONE, 0, null);
+        nextBall.setBallNumber(2);
+        nextBall.setNonStrikerId(14L);
+        deliveryService.record(100L, nextBall);
+
+        assertEquals(14L, innings.getNonStriker().getId());
     }
 
     @Test
@@ -178,6 +231,23 @@ class ScoringEngineTest {
         request.setBallNumber(2);
         deliveryService.record(100L, request);
 
+        assertEquals(InningsStatus.COMPLETED, innings.getStatus());
+    }
+
+    @Test
+    void completesT20AfterTwentyLegalOvers() {
+        for (int legalBall = 1; legalBall <= 120; legalBall++) {
+            DeliveryRequest request = request(0, ExtraType.NONE, 0, null);
+            request.setOverNumber((legalBall - 1) / 6 + 1);
+            request.setBallNumber((legalBall - 1) % 6 + 1);
+            if (innings.getStriker() != null) {
+                request.setBatsmanId(innings.getStriker().getId());
+                request.setNonStrikerId(innings.getNonStriker().getId());
+            }
+            deliveryService.record(100L, request);
+        }
+
+        assertEquals(120, innings.getLegalBalls());
         assertEquals(InningsStatus.COMPLETED, innings.getStatus());
     }
 

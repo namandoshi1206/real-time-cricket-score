@@ -2,9 +2,11 @@ package com.cricket.controller;
 
 import com.cricket.dto.MatchRequest;
 import com.cricket.dto.MatchResponse;
+import com.cricket.dto.MatchSummaryResponse;
 import com.cricket.entity.MatchStatus;
 import com.cricket.entity.MatchType;
 import com.cricket.service.MatchService;
+import com.cricket.service.MatchSummaryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,9 +26,11 @@ import java.util.List;
 public class MatchController {
 
     private final MatchService matchService;
+    private final MatchSummaryService matchSummaryService;
 
-    public MatchController(MatchService matchService) {
+    public MatchController(MatchService matchService, MatchSummaryService matchSummaryService) {
         this.matchService = matchService;
+        this.matchSummaryService = matchSummaryService;
     }
 
     @GetMapping
@@ -47,6 +51,11 @@ public class MatchController {
     @GetMapping("/type/{type}")
     public List<MatchResponse> findByType(@PathVariable MatchType type) {
         return matchService.findByType(type);
+    }
+
+    @GetMapping("/{id}/summary")
+    public MatchSummaryResponse summary(@PathVariable Long id) {
+        return matchSummaryService.getSummary(id);
     }
 
     @PostMapping

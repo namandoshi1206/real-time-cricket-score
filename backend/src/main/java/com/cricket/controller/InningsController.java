@@ -59,6 +59,6 @@ public class InningsController {
 
     @GetMapping("/api/innings/{inningsId}/score")
     public InningsResponse score(@PathVariable Long inningsId) {
-        return inningsService.findById(inningsId);
+        return deliveryService.scorecard(inningsId);
     }
 }

@@ -11,6 +11,7 @@ import com.cricket.service.InningsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -28,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(InningsController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class InningsControllerTest {
 
@@ -55,6 +57,7 @@ class InningsControllerTest {
     @Test
     void retrievesInningsAndScore() throws Exception {
         when(inningsService.findById(100L)).thenReturn(innings(100L));
+                when(deliveryService.scorecard(100L)).thenReturn(innings(100L));
 
         mockMvc.perform(get("/api/innings/100"))
                 .andExpect(status().isOk())

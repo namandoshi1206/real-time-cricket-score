@@ -1,7 +1,12 @@
 # Project Architecture and Development Plan
 
 ## 1. Objective
-The system is a real-time cricket score management platform that will eventually support admins, scorers, and viewers. Development proceeds incrementally so each stage preserves working behavior before later scoring and real-time capabilities are added.
+The system is a cricket score management platform for admins, scorers, and viewers. It provides team/player/match management, innings scoring, scorecards, and a REST-backed dashboard.
+
+## 1.1 Implemented Runtime
+The current checkout contains a Spring Boot 3.5.16 REST backend, Spring Data JPA/Hibernate persistence, a MySQL datasource, and a React/Vite client. Controllers delegate to services and repositories; DTOs define request and response contracts. Public GET routes expose fixture and score data, while write routes require ADMIN or SCORER through HTTP Basic authentication. New passwords are BCrypt-hashed. The dashboard polls score REST endpoints; WebSocket/STOMP events are not implemented.
+
+The optional external live-data path is `React -> Spring Boot REST API -> live service/cache -> CricketDataProvider adapter -> configured external provider`. Provider calls and credentials stay server-side. The selected provider and its native schema are not included or verified; deployment requires a compatible adapter/configuration. Manual match data continues through the existing Spring Boot/MySQL path.
 
 ## 2. Final High-Level Architecture
 
@@ -31,12 +36,13 @@ The platform will be split into the following major layers:
    - Entities for core cricket domain objects
 
 5. Real-Time Layer
-   - WebSocket/STOMP event publishing for score updates
-   - Live match event broadcasting to connected clients
+  - Current: browser polling of REST score endpoints
+  - Future: WebSocket/STOMP event publishing and live match broadcasting
 
 6. Security Layer
-   - Future Spring Security + JWT implementation
-   - Role-based access control for admin, scorer, and viewer roles
+  - Current: Spring Security HTTP Basic and BCrypt with ADMIN, SCORER, and VIEWER roles
+  - Initial ADMIN provisioning uses APP_ADMIN_USERNAME and APP_ADMIN_PASSWORD
+  - Future: JWT and production identity lifecycle
 
 
 ## 3. Backend Package Architecture
@@ -129,7 +135,10 @@ frontend/
 - Clean card-based dashboards
 - Live scoreboard panels and summary panels
 - Role-aware navigation for admin and scorer flows
-- Future integration with WebSocket event subscriptions
+- REST polling for live score refresh; WebSocket subscriptions remain future work
+
+### Current Client Structure
+The current client keeps the main workflow in `frontend/src/App.jsx`, the REST and Basic authorization helper in `frontend/src/api.js`, the entry point in `frontend/src/main.jsx`, and responsive styling in `frontend/src/styles.css`.
 
 ## 5. Database Entity and Relationship Model
 The core domain model will be centered on teams, players, matches, innings, and deliveries. A simplified yet extensible schema is preferred.
@@ -189,8 +198,8 @@ For the database foundation stage, the project includes the following initial JP
   - createdAt
   - updatedAt
 
-### Stage 5 match management
-Match CRUD is implemented through DTO-based REST controllers, service-layer validation, Spring Data repositories, and the existing MySQL schema. Matches reference two existing teams through lazy `ManyToOne` relationships and support status and type filtering. Scoring, innings, and delivery behavior remain deferred to later stages.
+### Match management
+Match CRUD is implemented through DTO-based REST controllers, service-layer validation, Spring Data repositories, and lazy `ManyToOne` relationships. Matches reference two distinct existing teams and support status and type filtering.
 
 - Innings
   - id
@@ -224,8 +233,8 @@ Match CRUD is implemented through DTO-based REST controllers, service-layer vali
   - dismissedBatsman
   - createdAt
 
-### Stage 6 scoring engine
-The scoring engine manages innings and transactional deliveries through the service layer. It validates match teams and player membership, calculates batsman runs plus extras, distinguishes legal deliveries from wides and no-balls, tracks wickets and dismissed batsmen, formats overs as legal-ball notation, and completes limited-overs innings when targets, wickets, or configured overs are reached. WebSocket updates, player statistics, and advanced Test-match rules remain deferred.
+### Scoring engine
+The scoring engine manages innings and transactional deliveries through the service layer. It validates match teams and player membership, calculates runs and extras, distinguishes legal deliveries from wides and no-balls, tracks dismissals and strike, formats overs as legal-ball notation, and completes limited-overs innings on targets, wickets, or configured overs. Innings scorecards derive batting/bowling figures and extras from deliveries. WebSocket events and advanced Test-match rules remain deferred.
 
 ### Core Entities
 - User
