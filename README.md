@@ -100,8 +100,8 @@ Example:
 $env:DB_HOST = "localhost"
 $env:DB_PORT = "3306"
 $env:DB_NAME = "cricket_score_db"
-$env:DB_USERNAME = "root"
-$env:DB_PASSWORD = "your_secure_password"
+$env:DB_USERNAME = "cricket_app"
+$env:DB_PASSWORD = "<set locally>"
 ```
 
 Create the database using:
@@ -169,13 +169,13 @@ Requirements: Java 25, Maven 3.9.16, MySQL, and Node.js/npm.
 The datasource URL defaults to `localhost:3306/cricket_score_db`. Provide datasource credentials through Spring environment overrides and never commit real credentials:
 
 ```powershell
-$env:SPRING_DATASOURCE_USERNAME = "cricket_app"
-$env:SPRING_DATASOURCE_PASSWORD = "<set locally>"
+$env:DB_USERNAME = "cricket_app"
+$env:DB_PASSWORD = "<set locally>"
 $env:APP_ADMIN_USERNAME = "score-admin"
 $env:APP_ADMIN_PASSWORD = "<set locally; use a strong password>"
 ```
 
-The current local `application.yml` still contains inline datasource credentials; replace those with environment placeholders before sharing or deploying this checkout. `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` override those local values. Hibernate uses `ddl-auto: update` for the development database; do not use this setting as a production migration strategy.
+The datasource username and password have no inline defaults; set `DB_USERNAME` and `DB_PASSWORD` in the backend process environment before startup. Create a least-privilege MySQL account for the application rather than using `root`. Hibernate uses `ddl-auto: update` for the development database; do not use this setting as a production migration strategy.
 
 Start the backend:
 
